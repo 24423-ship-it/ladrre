@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Learning Basics & Interactive Quiz</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#7C3AED',
+                        accent: '#06B6D4'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 bg-slate-50 antialiased">
+    <div id="root">
+        <div class="min-h-screen flex items-center justify-center p-6 text-slate-500 font-medium">
+            กำลังโหลดแอปพลิเคชัน Machine Learning... 🚀
+        </div>
+    </div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ==========================================
+        // ส่งผลคะแนนแบบทดสอบไปยัง Google Sheets ผ่าน Apps Script
+        // ==========================================
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyR6Ak9rTGsg4_K4fs_b4pM8tV4kPsPc6ZWb_7N9ioMfOZAnaWoo-uEsMMf1JZZ-Xsmpw/exec";
+
+        function sendScoreToSheet(name, score, total) {
+            const payload = new URLSearchParams({ name: name, score: score, total: total });
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Apps Script ไม่ส่ง CORS header กลับมา จึงอ่าน response ไม่ได้ แต่ข้อมูลจะถูกบันทึกปกติ
+                body: payload
+            }).catch(err => {
+                console.error('ส่งข้อมูลไปชีตไม่สำเร็จ:', err);
+            });
+        }
+
+        const LucideIcon = ({ name, className = "w-5 h-5", size }) => {
+            const iconStyle = size ? { width: size, height: size } : {};
+            
+            // Render SVG based on icon name
+            switch (name) {
+                case 'brain':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/></svg>;
+                case 'presentation':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M2 3h20"/><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"/><path d="m7 21 5-5 5 5"/></svg>;
+                case 'network':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect width="6" height="6" x="9" y="2" rx="1"/><rect width="6" height="6" x="2" y="16" rx="1"/><rect width="6" height="6" x="16" y="16" rx="1"/><path d="M6 16v-3a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3"/><path d="M12 8v3"/></svg>;
+                case 'git-merge':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 9v12"/><path d="M6 9a9 9 0 0 1 9 9"/></svg>;
+                case 'layers':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.5-8.58 3.91a2 2 0 0 1-1.66 0L3.18 12.5"/><path d="m22 17.5-8.58 3.91a2 2 0 0 1-1.66 0L3.18 17.5"/></svg>;
+                case 'database':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>;
+                case 'file-check-2':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="m3 15 2 2 4-4"/></svg>;
+                case 'lightbulb':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>;
+                case 'sliders-horizontal':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>;
+                case 'alert-triangle':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>;
+                case 'trash-2':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
+                case 'binary':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="14" y="4" width="4" height="6" rx="2"/><rect x="6" y="14" width="4" height="6" rx="2"/><path d="M6 4h2v6"/><path d="M14 14h2v6"/></svg>;
+                case 'ruler':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0l12.6 12.6z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>;
+                case 'scale':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>;
+                case 'scissors':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" x2="8.12" y1="4" y2="15.88"/><line x1="14.47" x2="20" y1="14.48" y2="20"/><line x1="8.12" x2="12" y1="8.12" y2="12"/></svg>;
+                case 'table':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M12 3v18"/><path d="M3 12h18"/><rect width="18" height="18" x="3" y="3" rx="2"/></svg>;
+                case 'scale-3d':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M5 17V5h12"/><path d="M7 19h10"/></svg>;
+                case 'arrow-down':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>;
+                case 'alert-circle':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>;
+                case 'check-circle-2':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>;
+                case 'menu':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>;
+                case 'x':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
+                case 'cpu':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>;
+                case 'zap':
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+                default:
+                    return <svg className={className} style={iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>;
+            }
+        };
+
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 ${className}`}>
+                {children}
+            </div>
+        );
+
+        const SectionTitle = ({ title, icon }) => (
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
+                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+                    <LucideIcon name={typeof icon === 'string' ? icon : 'brain'} className="w-7 h-7" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{title}</h2>
+            </div>
+        );
+
+        const Quiz = ({ questions }) => {
+            const [userAnswers, setUserAnswers] = useState({});
+
+            if (!questions || !questions.length) return null;
+
+            const handleSelect = (qIdx, optIdx) => {
+                setUserAnswers(prev => ({ ...prev, [qIdx]: optIdx }));
+            };
+
+            return (
+                <div className="mt-8 space-y-6">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <LucideIcon name="file-check-2" className="text-primary" /> แบบทดสอบความเข้าใจประจำบท
+                    </h3>
+                    {questions.map((q, qIdx) => {
+                        const selected = userAnswers[qIdx];
+                        const isSelected = selected !== undefined;
+                        const isCorrect = selected === q.correct;
+
+                        return (
+                            <Card key={qIdx} className={`border-2 transition-all ${isSelected ? (isCorrect ? 'border-emerald-300 bg-emerald-50/20' : 'border-red-300 bg-red-50/20') : 'border-slate-200'}`}>
+                                <p className="font-bold text-slate-800 text-base mb-4">{qIdx + 1}. {q.question}</p>
+                                <div className="grid md:grid-cols-2 gap-3 mb-3">
+                                    {q.options.map((opt, optIdx) => {
+                                        let btnClass = "p-3 rounded-xl border text-sm text-left transition font-medium flex items-center justify-between ";
+                                        if (selected === optIdx) {
+                                            btnClass += optIdx === q.correct ? "bg-emerald-100 border-emerald-500 text-emerald-900 font-bold shadow-sm" : "bg-red-100 border-red-500 text-red-900 font-bold shadow-sm";
+                                        } else if (isSelected && optIdx === q.correct) {
+                                            btnClass += "bg-emerald-50 border-emerald-400 text-emerald-800 font-bold";
+                                        } else {
+                                            btnClass += "bg-white border-slate-200 text-slate-700 hover:bg-slate-50";
+                                        }
+
+                                        return (
+                                            <button key={optIdx} onClick={() => handleSelect(qIdx, optIdx)} className={btnClass}>
+                                                <span><span className="font-bold mr-1.5">{String.fromCharCode(65 + optIdx)}.</span> {opt}</span>
+                                                {selected === optIdx && (
+                                                    <span className="font-bold">{isCorrect ? '✓' : '✗'}</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {isSelected && (
+                                    <div className="p-3 bg-slate-900 text-slate-200 text-xs rounded-xl border border-slate-700 mt-2">
+                                        <span className="font-bold text-amber-400 block mb-1">💡 คำอธิบาย:</span>
+                                        {q.explanation}
+                                    </div>
+                                )}
+                            </Card>
+                        );
+                    })}
+                </div>
+            );
+        };
+
+        const SlideDeck2Section = () => {
+            return (
+                <div className="space-y-6 fade-in">
+                    <Card className="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 text-white shadow-xl">
+                        <span className="bg-amber-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">Overview Summary</span>
+                        <h3 className="text-2xl md:text-3xl font-black mt-3 mb-2 text-white">สรุปเนื้อหา Machine Learning Part 2</h3>
+                        <p className="text-slate-300 text-sm leading-relaxed">
+                            เนื้อหาในชุดสไลด์นี้ครอบคลุมโครงสร้างของ Neural Networks (ANN), การทำงานของ Decision Tree, ประเภทของการจำแนกกลุ่ม (Classification), และกระบวนการเตรียมข้อมูล (Data Preprocessing)
+                        </p>
+                    </Card>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <Card className="hover:border-indigo-300 transition-all">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg"><LucideIcon name="network" /></div>
+                                <h4 className="font-bold text-lg text-slate-800">1. Artificial Neural Networks (ANN)</h4>
+                            </div>
+                            <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                                แบบจำลองโครงข่ายประสาทเทียมที่จำลองการทำงานของสมองมนุษย์ ประกอบด้วย Input Layer, Hidden Layer, Output Layer และมี Activation Function สำหรับการแปลงผลแบบ Non-linear
+                            </p>
+                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">หัวข้อหลัก: Weights, Biases, Activation Functions</span>
+                        </Card>
+
+                        <Card className="hover:border-indigo-300 transition-all">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-purple-100 text-purple-700 rounded-lg"><LucideIcon name="git-merge" /></div>
+                                <h4 className="font-bold text-lg text-slate-800">2. Decision Tree & Pruning</h4>
+                            </div>
+                            <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                                โมเดลต้นไม้ตัดสินใจ ทำงานด้วยการสร้างเงื่อนไขแยกข้อมูล ใช้ค่า Entropy และ Gini Impurity ในการคำนวณการแบ่งกิ่ง และใช้ Pruning เพื่อป้องกัน Overfitting
+                            </p>
+                            <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md">หัวข้อหลัก: Gini, Entropy, Max Depth, Overfitting</span>
+                        </Card>
+
+                        <Card className="hover:border-indigo-300 transition-all">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg"><LucideIcon name="layers" /></div>
+                                <h4 className="font-bold text-lg text-slate-800">3. Classification Types</h4>
+                            </div>
+                            <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                                การจำแนกประเภทข้อมูลแบ่งตามลักษณะ Label ได้แก่ Binary (2 คลาส), Multi-class (หลายคลาส เลือกตอบ 1 คลาส), และ Multi-label (ตอบได้หลายคลาสพร้อมกัน)
+                            </p>
+                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">หัวข้อหลัก: Binary vs Multi-class vs Multi-label</span>
+                        </Card>
+
+                        <Card className="hover:border-indigo-300 transition-all">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-cyan-100 text-cyan-700 rounded-lg"><LucideIcon name="database" /></div>
+                                <h4 className="font-bold text-lg text-slate-800">4. Data Preprocessing</h4>
+                            </div>
+                            <p className="text-sm text-slate-600 leading-relaxed mb-3">
+                                ขั้นตอนเตรียมข้อมูลก่อนเทรนโมเดล ได้แก่ Cleaning, Categorical Encoding, Feature Scaling, Handling Imbalanced Data (SMOTE) และ Data Splitting
+                            </p>
+                            <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2.5 py-1 rounded-md">หัวข้อหลัก: Scaling, Encoding, SMOTE, Train/Test Split</span>
+                        </Card>
+                    </div>
+                </div>
+            );
+        };
+
+        const ANNSection = () => {
+            const [input1, setInput1] = useState(1.0);
+            const [input2, setInput2] = useState(0.5);
+            const [weight1, setWeight1] = useState(0.8);
+            const [weight2, setWeight2] = useState(-0.4);
+            const [bias, setBias] = useState(0.1);
+            const [activation, setActivation] = useState('relu');
+
+            const z = (input1 * weight1) + (input2 * weight2) + bias;
+            let output = z;
+            if (activation === 'relu') output = Math.max(0, z);
+            else if (activation === 'sigmoid') output = 1 / (1 + Math.exp(-z));
+            else if (activation === 'step') output = z >= 0 ? 1 : 0;
+
+            const quizzes = [
+                {
+                    question: "หากไม่ใส่ Activation Function แบบ Non-linear ใน Hidden Layer ทุกชั้นของ ANN โมเดลจะมีประสิทธิภาพเท่ากับโมเดลใด?",
+                    options: ["Decision Tree Model", "Linear Regression Model", "Random Forest Model", "SVM Model"],
+                    correct: 1,
+                    explanation: "เพราะผลรวมคูณเชิงเส้น (Linear Combination) หลายๆ ชั้น ต่อกันก็ยังคงเป็นฟังก์ชันเชิงเส้นเดียว เทียบเท่ากับ Linear Model"
+                },
+                {
+                    question: "ข้อใดคือหน้าที่หลักของ 'Bias' ใน Artificial Neural Network?",
+                    options: ["เพื่อลดจำนวน Neuron", "ช่วยปรับเลื่อนจุดเปิด-ปิด Activation Function (Offset) ให้ฟิตกับข้อมูลได้ดีขึ้น", "แปลงข้อมูลตัวหนังสือเป็นตัวเลข", "ทำให้โมเดลประมวลผลเร็วขึ้น 2 เท่า"],
+                    correct: 1,
+                    explanation: "Bias เปรียบเหมือนค่า Intercept ในสมการเส้นตรง ช่วยให้ Activation Function สามารถเลื่อนซ้าย-ขวา เพื่อเรียนรู้รูปแบบข้อมูลได้ยืดหยุ่นขึ้น"
+                }
+            ];
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <p className="text-lg text-slate-600">
+                        <b>Artificial Neural Networks (ANN)</b> โครงข่ายประสาทเทียมจำลองโหนดการประมวลผลเป็นชั้นๆ (Input &rarr; Hidden &rarr; Output) โดยแต่ละโหนดจะคำนวณผลคูณถ่วงน้ำหนัก (Weighted Sum) บวกกับค่า Bias
+                    </p>
+
+                    <Card>
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-800">
+                            <LucideIcon name="sliders-horizontal" className="text-primary" />
+                            Interactive Demo: Single Perceptron Simulator
+                        </h3>
+                        
+                        <div className="grid md:grid-cols-2 gap-6 items-center">
+                            <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <div>
+                                    <label className="text-xs font-bold text-slate-600 flex justify-between">Input 1 (x1): <span>{input1.toFixed(1)}</span></label>
+                                    <input type="range" min="-2" max="2" step="0.1" value={input1} onChange={e=>setInput1(parseFloat(e.target.value))} className="w-full accent-primary" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-600 flex justify-between">Weight 1 (w1): <span>{weight1.toFixed(1)}</span></label>
+                                    <input type="range" min="-2" max="2" step="0.1" value={weight1} onChange={e=>setWeight1(parseFloat(e.target.value))} className="w-full accent-primary" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-600 flex justify-between">Input 2 (x2): <span>{input2.toFixed(1)}</span></label>
+                                    <input type="range" min="-2" max="2" step="0.1" value={input2} onChange={e=>setInput2(parseFloat(e.target.value))} className="w-full accent-primary" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-600 flex justify-between">Weight 2 (w2): <span>{weight2.toFixed(1)}</span></label>
+                                    <input type="range" min="-2" max="2" step="0.1" value={weight2} onChange={e=>setWeight2(parseFloat(e.target.value))} className="w-full accent-primary" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-600 flex justify-between">Bias (b): <span>{bias.toFixed(1)}</span></label>
+                                    <input type="range" min="-2" max="2" step="0.1" value={bias} onChange={e=>setBias(parseFloat(e.target.value))} className="w-full accent-primary" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-600 block mb-1">Activation Function:</label>
+                                    <select value={activation} onChange={e=>setActivation(e.target.value)} className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm">
+                                        <option value="relu">ReLU : max(0, z)</option>
+                                        <option value="sigmoid">Sigmoid : 1 / (1 + e^-z)</option>
+                                        <option value="step">Step Function : z &gt;= 0 ? 1 : 0</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900 text-white p-6 rounded-2xl flex flex-col items-center justify-center text-center shadow-lg">
+                                <div className="text-xs text-slate-400 mb-1">ผลลัพธ์คำนวณภายในโหนด</div>
+                                <div className="font-mono text-sm text-cyan-300 mb-4 bg-slate-800 p-2 rounded-lg border border-slate-700 w-full">
+                                    z = ({input1.toFixed(1)}×{weight1.toFixed(1)}) + ({input2.toFixed(1)}×{weight2.toFixed(1)}) + {bias.toFixed(1)} = <span className="text-amber-300 font-bold">{z.toFixed(2)}</span>
+                                </div>
+                                
+                                <div className="text-xs text-slate-400 mb-1">ผลลัพธ์หลังผ่าน Activation Function ({activation.toUpperCase()})</div>
+                                <div className="text-4xl font-black text-emerald-400 bg-slate-800 px-6 py-3 rounded-xl border border-slate-700 my-2 shadow-inner">
+                                    {output.toFixed(4)}
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <Card className="bg-emerald-50 border-emerald-100">
+                            <h3 className="text-emerald-800 font-bold text-lg mb-3 flex items-center gap-2">
+                                <LucideIcon name="check-circle-2" className="w-5 h-5" /> ข้อดี (Pros)
+                            </h3>
+                            <ul className="list-disc list-inside space-y-2 text-emerald-900 text-sm">
+                                <li>ประมวลผลข้อมูลซับซ้อน เช่น ภาพ, เสียง, ข้อความ ได้มีประสิทธิภาพสูง</li>
+                                <li>เรียนรู้การสกัด Feature ได้อัตโนมัติ (Feature Learning)</li>
+                            </ul>
+                        </Card>
+                        <Card className="bg-red-50 border-red-100">
+                            <h3 className="text-red-800 font-bold text-lg mb-3 flex items-center gap-2">
+                                <LucideIcon name="alert-triangle" className="w-5 h-5" /> ข้อจำกัด (Cons)
+                            </h3>
+                            <ul className="list-disc list-inside space-y-2 text-red-900 text-sm">
+                                <li><b>Black Box:</b> อธิบายเหตุผลเบื้องหลังการทำนายได้ยาก</li>
+                                <li>ต้องการปริมาณข้อมูลมาก และใช้ GPU ประมวลผลสูง</li>
+                            </ul>
+                        </Card>
+                    </div>
+
+                    <Quiz questions={quizzes} />
+                </div>
+            );
+        };
+
+        const DTSection = () => {
+            const [depth, setDepth] = useState(2);
+
+            const renderTree = () => {
+                const nodes = [];
+                const lines = [];
+                const renderNode = (x, y, currentDepth, maxAllowedDepth, isLeft) => {
+                    if (currentDepth > maxAllowedDepth) return;
+                    
+                    const nodeRadius = maxAllowedDepth > 3 ? 12 : 18;
+                    const yOffset = maxAllowedDepth > 3 ? 40 : 50;
+                    const xOffset = 120 / Math.pow(1.5, currentDepth);
+
+                    if (currentDepth < maxAllowedDepth) {
+                        const leftX = x - xOffset;
+                        const rightX = x + xOffset;
+                        const childY = y + yOffset;
+                        lines.push(<line key={`l-${x}-${y}-left`} x1={x} y1={y} x2={leftX} y2={childY} stroke="#94A3B8" strokeWidth="2" />);
+                        lines.push(<line key={`l-${x}-${y}-right`} x1={x} y1={y} x2={rightX} y2={childY} stroke="#94A3B8" strokeWidth="2" />);
+                        
+                        renderNode(leftX, childY, currentDepth + 1, maxAllowedDepth, true);
+                        renderNode(rightX, childY, currentDepth + 1, maxAllowedDepth, false);
+                    }
+
+                    let fill = "#3B82F6";
+                    let stroke = "#2563EB";
+                    if (currentDepth === 1) { fill = "#1E293B"; stroke = "#0F172A"; }
+                    else if (currentDepth === maxAllowedDepth) { fill = isLeft ? "#10B981" : "#F43F5E"; stroke = isLeft ? "#059669" : "#E11D48"; }
+
+                    nodes.push(
+                        <g key={`n-${x}-${y}`}>
+                            <circle cx={x} cy={y} r={nodeRadius} fill={fill} stroke={stroke} strokeWidth="2" className="transition-all duration-300" />
+                        </g>
+                    );
+                };
+
+                renderNode(200, 30, 1, depth, true);
+                
+                return (
+                    <svg viewBox="0 0 400 240" className="w-full h-48 md:h-64 mt-4 drop-shadow-sm">
+                        {lines}
+                        {nodes}
+                    </svg>
+                );
+            };
+
+            const quizzes = [
+                {
+                    question: "ใน Decision Tree โหนด (Node) ที่อยู่ล่างสุดและเป็นตัวบอกผลลัพธ์การทำนาย เรียกว่าอะไร?",
+                    options: ["Root Node", "Internal Node", "Branch Node", "Leaf Node"],
+                    correct: 3,
+                    explanation: "Leaf Node คือโหนดใบไม้ หรือจุดสิ้นสุดของต้นไม้ ซึ่งจะเก็บผลลัพธ์ของคลาสที่เราต้องการทำนาย"
+                },
+                {
+                    question: "เทคนิคการตัดแต่งกิ่ง (Pruning) ใน Decision Tree มีวัตถุประสงค์หลักเพื่อสิ่งใด?",
+                    options: ["เพิ่มความเร็วการเทรน", "ลดความซับซ้อนของต้นไม้เพื่อลด Overfitting", "แปลงเป็น Neural Network", "เพิ่มจำนวน Leaf Node"],
+                    correct: 1,
+                    explanation: "Pruning ตัดกิ่งก้านย่อยที่ไม่จำเป็นออก เพื่อลดความซับซ้อน ป้องกันการจดจำ Noise ในข้อมูลฝึกสอน"
+                }
+            ];
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <p className="text-lg text-slate-600">
+                        <b>Decision Tree (ต้นไม้ตัดสินใจ)</b> ใช้กฎ "ถ้า...แล้ว..." (If-Else) ในการแตกกิ่งแบ่งกลุ่มข้อมูลตามความไม่บริสุทธิ์ (Impurity)
+                    </p>
+
+                    <div className="grid md:grid-cols-3 gap-4 mb-6 text-center">
+                        <div className="bg-slate-800 text-white p-4 rounded-xl shadow-sm">
+                            <div className="w-4 h-4 rounded-full bg-white mx-auto mb-2"></div>
+                            <div className="font-bold">Root Node</div>
+                            <div className="text-xs text-slate-300">โหนดเริ่มต้นสุด (บนสุด)</div>
+                        </div>
+                        <div className="bg-blue-600 text-white p-4 rounded-xl shadow-sm">
+                            <div className="w-4 h-4 rounded-full bg-white mx-auto mb-2"></div>
+                            <div className="font-bold">Internal Node</div>
+                            <div className="text-xs text-blue-200">โหนดเงื่อนไขที่ใช้แบ่งข้อมูล</div>
+                        </div>
+                        <div className="bg-emerald-500 text-white p-4 rounded-xl shadow-sm">
+                            <div className="w-4 h-4 rounded-full bg-white mx-auto mb-2"></div>
+                            <div className="font-bold">Leaf Node</div>
+                            <div className="text-xs text-emerald-100">โหนดผลลัพธ์ (ล่างสุด)</div>
+                        </div>
+                    </div>
+
+                    <Card>
+                        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <LucideIcon name="sliders-horizontal" className="text-primary" />
+                            Interactive Demo: Depth & Overfitting
+                        </h3>
+
+                        <div className="flex items-center gap-4 mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <span className="font-bold whitespace-nowrap min-w-[80px]">Max Depth:</span>
+                            <input 
+                                type="range" min="1" max="5" step="1" 
+                                value={depth} 
+                                onChange={(e) => setDepth(parseInt(e.target.value))}
+                                className="w-full accent-primary h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer"
+                            />
+                            <span className="font-bold text-2xl text-primary min-w-[40px] text-center">{depth}</span>
+                        </div>
+
+                        <div className="text-center rounded-xl overflow-hidden bg-slate-50 border border-slate-200 p-4 relative">
+                            <div className="absolute top-4 left-4 right-4 flex justify-between">
+                                <span className="bg-white/80 backdrop-blur px-3 py-1 rounded shadow-sm text-xs font-bold text-slate-600">
+                                    Nodes ทั้งหมด: {Math.pow(2, depth) - 1}
+                                </span>
+                                {depth >= 4 && (
+                                    <span className="bg-red-100 backdrop-blur text-red-600 px-3 py-1 rounded shadow-sm text-xs font-bold border border-red-200">
+                                        ⚠️ ซับซ้อนสูง มีโอกาส Overfitting
+                                    </span>
+                                )}
+                            </div>
+                            {renderTree()}
+                        </div>
+                    </Card>
+
+                    <Quiz questions={quizzes} />
+                </div>
+            );
+        };
+
+        const ClassTypeSection = () => {
+            const [selectedType, setSelectedType] = useState('binary');
+
+            const types = {
+                binary: {
+                    title: "1. Binary Classification",
+                    desc: "การจำแนกข้อมูลออกเป็น 2 กลุ่ม (ใช่/ไม่ใช่, 0/1, จริง/เท็จ)",
+                    example: "Spam / Not Spam, ป่วย / ไม่ป่วย",
+                    visual: "⭕ vs ❌"
+                },
+                multiclass: {
+                    title: "2. Multi-class Classification",
+                    desc: "การจำแนกข้อมูลหลายกลุ่ม แต่ละข้อมูลเลือกตอบได้เพียง 1 คลาสเท่านั้น",
+                    example: "จำแนกชนิดสัตว์ (แมว/หมา/นก), ตัดเกรด (A/B/C/D/F)",
+                    visual: "🐱 vs 🐶 vs 🐦"
+                },
+                multilabel: {
+                    title: "3. Multi-label Classification",
+                    desc: "การจำแนกข้อมูลที่ 1 ข้อมูล สามารถตอบได้หลายคลาสพร้อมกัน",
+                    example: "การติด Tag รูปภาพ (#ทะเล #พระอาทิตย์ตก), ผลตรวจโรค X-ray (ปอดบวม และ หัวใจโต)",
+                    visual: "🏷️ [#ทะเล #ภูเขา]"
+                }
+            };
+
+            const quizzes = [
+                {
+                    question: "โจทย์: 'ภาพ X-ray ปอด 1 ภาพ อาจตรวจพบทั้งภาวะปอดบวมและหัวใจโตพร้อมกัน' จัดเป็นประเภทใด?",
+                    options: ["Binary Classification", "Multi-class Classification", "Multi-label Classification", "Unsupervised Clustering"],
+                    correct: 2,
+                    explanation: "เนื่องจากข้อมูล 1 ตัวอย่างสามารถมี Label คำตอบได้หลายคลาสพร้อมๆ กัน จึงจัดเป็น Multi-label Classification"
+                }
+            ];
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <p className="text-lg text-slate-600 mb-6">
+                        การจำแนกประเภท (Classification) ใน Supervised Learning แบ่งตามลักษณะของ Label ออกเป็น 3 แบบ:
+                    </p>
+
+                    <div className="grid md:grid-cols-3 gap-4 mb-6">
+                        {Object.keys(types).map(key => (
+                            <div 
+                                key={key}
+                                onClick={() => setSelectedType(key)}
+                                className={`cursor-pointer rounded-xl p-5 border-2 transition-all text-center ${selectedType === key ? 'border-primary bg-indigo-600 text-white shadow-lg' : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'}`}
+                            >
+                                <h3 className="font-bold text-base mb-2">{types[key].title}</h3>
+                                <div className="text-3xl my-3">{types[key].visual}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <Card className="border-t-4 border-t-indigo-500 bg-indigo-50/50">
+                        <h3 className="text-2xl font-bold mb-2 text-slate-800">{types[selectedType].title}</h3>
+                        <p className="text-slate-700 text-base mb-4">{types[selectedType].desc}</p>
+                        <div className="bg-white p-4 rounded-xl border border-indigo-100">
+                            <span className="font-bold text-indigo-900">💡 ตัวอย่าง: </span>
+                            <span className="text-slate-700">{types[selectedType].example}</span>
+                        </div>
+                    </Card>
+
+                    <Quiz questions={quizzes} />
+                </div>
+            );
+        };
+
+        const DataPrepSection = () => {
+            const steps = [
+                { title: "Data Cleaning", desc: "จัดการค่าว่าง (Missing Values) และลบข้อมูลขยะ", icon: "trash-2" },
+                { title: "Encoding", desc: "แปลงข้อความ (Categorical) เป็นตัวเลขด้วย One-Hot Encoding", icon: "binary" },
+                { title: "Feature Scaling", desc: "ปรับช่วงตัวเลขให้ใกล้เคียงกัน (Min-Max / Standard)", icon: "ruler" },
+                { title: "Imbalanced Data", desc: "แก้ปัญหาคลาสไม่สมดุลด้วย SMOTE", icon: "scale" },
+                { title: "Data Splitting", desc: "แบ่ง Train / Test Set", icon: "scissors" }
+            ];
+
+            const quizzes = [
+                {
+                    question: "ในขั้นตอน Data Preprocessing เหตุใดจึงต้อง fit StandardScaler เฉพาะ Training Set ก่อนนำไป transform บน Test Set?",
+                    options: ["เพื่อเพิ่มความเร็วในการคำนวณ", "เพื่อป้องกันปัญหา Data Leakage จาก Test Set", "เพราะ Test Set ไม่มีข้อมูลเชิงตัวเลข", "เพื่อให้ Test Set มีค่าเฉลี่ยเป็น 0"],
+                    correct: 1,
+                    explanation: "หาก fit โดยใช้ข้อมูล Test Set ร่วมด้วย สถิติของ Test Set จะรั่วไหลไปยังโมเดลก่อนการวัดผลจริง (Data Leakage) ส่งผลให้ประเมินผลดีเกินจริง"
+                }
+            ];
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <p className="text-lg text-slate-600 mb-6">
+                        ขั้นตอนเตรียมข้อมูล (Data Preprocessing Pipeline) มีความสำคัญสูงสุดต่อประสิทธิภาพของโมเดล
+                    </p>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                        {steps.map((step, idx) => (
+                            <Card key={idx} className="flex flex-col items-start hover:border-indigo-300">
+                                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl mb-3">
+                                    <LucideIcon name={step.icon} />
+                                </div>
+                                <span className="text-xs font-bold bg-slate-800 text-white px-2 py-0.5 rounded-full mb-1">Step {idx + 1}</span>
+                                <h4 className="font-bold text-slate-800 text-lg mb-1">{step.title}</h4>
+                                <p className="text-xs text-slate-600 leading-relaxed">{step.desc}</p>
+                            </Card>
+                        ))}
+                    </div>
+
+                    <Card>
+                        <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                            <LucideIcon name="scale-3d" className="text-primary" />
+                            การทำ Feature Scaling จำเป็นต่อโมเดลใดบ้าง?
+                        </h3>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                                <span className="font-bold text-red-900 block mb-1">✅ จำเป็นต้องทำ (Must Do)</span>
+                                <p className="text-xs text-red-800">KNN, Neural Networks (ANN), SVM, Linear/Logistic Regression (เนื่องจากใช้ Distance หรือ Gradient Descent)</p>
+                            </div>
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                                <span className="font-bold text-green-900 block mb-1">❌ ไม่จำเป็นต้องทำ (Optional)</span>
+                                <p className="text-xs text-green-800">Decision Tree, Random Forest, XGBoost (เนื่องจากการตัดเงื่อนไขแยกเป็นเอกเทศในแต่ละแกน)</p>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Quiz questions={quizzes} />
+                </div>
+            );
+        };
+
+        const ComprehensiveQuizSection = () => {
+            const questions = [
+                {
+                    id: 1,
+                    q: "หากต้องการฝึกโมเดลจำแนกข้อมูลด้วย Decision Tree และ K-Nearest Neighbors (KNN) การทำ Feature Scaling มีความจำเป็นอย่างไร?",
+                    options: [
+                        "มีความจำเป็นเท่ากันทั้งสองโมเดล",
+                        "มีความจำเป็นสำหรับ KNN เท่านั้น",
+                        "มีความจำเป็นสำหรับ Decision Tree เท่านั้น",
+                        "ไม่มีความจำเป็นเลยทั้งสองโมเดล"
+                    ],
+                    correct: 1,
+                    explanation: "KNN คำนวณความคล้ายคลึงด้วยระยะทาง (Distance-based) จึงจำเป็นต้องทำ Feature Scaling ส่วน Decision Tree ใช้การแบ่งเงื่อนไขตามตัวแปรเป็นเอกเทศ จึงไม่ได้รับผลกระทบจากขนาดสเกล"
+                },
+                {
+                    id: 2,
+                    q: "การเพิ่มจำนวน Hidden Layer ใน Artificial Neural Network (ANN) มากเกินไป โดยไม่ปรับแต่ง hyperparameter มีโอกาสส่งผลกระทบอย่างไรมากที่สุด?",
+                    options: [
+                        "เกิดปัญหา Underfitting",
+                        "โมเดลประมวลผลได้เร็วขึ้น",
+                        "เกิดปัญหา Overfitting บนชุดข้อมูลฝึกสอน",
+                        "ค่า Loss เพิ่มขึ้นทันทีตั้งแต่ Epoch แรก"
+                    ],
+                    correct: 2,
+                    explanation: "การเพิ่ม Hidden Layer มากเกินไปทำให้โมเดลมีความซับซ้อน (Capacity) สูงเกินไป จนไปจดจำ Noise และรายละเอียดปลีกย่อยในข้อมูลฝึกสอน เกิดปัญหา Overfitting"
+                },
+                {
+                    id: 3,
+                    q: "ในขั้นตอน Data Preprocessing หากมี Feature ประเภท Categorical แบบไม่มีลำดับ (Nominal) ที่มีคลาสย่อยเป็นจำนวนมาก การใช้ One-Hot Encoding อาจก่อให้เกิดปัญหาใด?",
+                    options: [
+                        "เกิดภาวะ Curse of Dimensionality (มิติข้อมูลเพิ่มขึ้นมหาศาล)",
+                        "ทำให้ข้อมูลเกิดความเอนเอียง (Bias)",
+                        "เกิดปัญหา Data Leakage",
+                        "ทำให้ค่า Variance ของข้อมูลลดลงเป็นศูนย์"
+                    ],
+                    correct: 0,
+                    explanation: "One-Hot Encoding จะสร้างคอลัมน์ใหม่ 1 คอลัมน์ต่อ 1 คลาสย่อย หากข้อมูลมีคลาสย่อยจำนวนมาก จะทำให้ Matrix ข้อมูลขยายมิติสูงขึ้นมาก (Sparse High-Dimensional Data)"
+                },
+                {
+                    id: 4,
+                    q: "ในการสร้าง Decision Tree ค่า Entropy ของชุดข้อมูล ณ Node ใด Node หนึ่งมีค่าเท่ากับ 0 หมายความว่าอย่างไร?",
+                    options: [
+                        "ข้อมูลกระจายตัวแบบสมบูรณ์",
+                        "ข้อมูลใน Node นั้นเป็นคลาสเดียวกันทั้งหมด (Pure Node)",
+                        "ไม่สามารถแบ่งกิ่งต่อไปได้แล้วเพราะข้อมูลขัดแย้งกัน",
+                        "ค่าความยุ่งเหยิงอยู่ในระดับสูงสุด"
+                    ],
+                    correct: 1,
+                    explanation: "Entropy วัดค่าความยุ่งเหยิงของข้อมูล เมื่อ Entropy = 0 หมายถึงมีความยุ่งเหยิงเป็นศูนย์ ข้อมูลทั้งหมดใน Node นั้นเป็นคลาสเดียวกัน 100%"
+                },
+                {
+                    id: 5,
+                    q: "การพัฒนาระบบ AI เพื่อระบุโรคทางโพรงอกจากการวิเคราะห์ภาพ X-ray ปอด โดยผู้ป่วย 1 คนอาจตรวจพบทั้งภาวะปอดบวมและหัวใจโตพร้อมกัน จัดเป็นโจทย์ประเภทใด?",
+                    options: [
+                        "Binary Classification",
+                        "Multi-class Classification",
+                        "Multi-label Classification",
+                        "Unsupervised Clustering"
+                    ],
+                    correct: 2,
+                    explanation: "เมื่อตัวอย่างข้อมูล 1 ชิ้น (1 รูป X-ray) สามารถจัดอยู่ในหลายคลาสคำตอบพร้อมๆ กันได้ จัดเป็น Multi-label Classification"
+                },
+                {
+                    id: 6,
+                    q: "หาก Artificial Neural Network (ANN) ไม่ได้ใส่ Activation Function แบบ Non-linear ใน Hidden Layer ทุกชั้น โมเดลดังกล่าวจะมีประสิทธิภาพเทียบเท่ากับโมเดลใด?",
+                    options: [
+                        "Decision Tree Model",
+                        "Linear Regression Model",
+                        "Random Forest Model",
+                        "Support Vector Machine (Kernel RBF)"
+                    ],
+                    correct: 1,
+                    explanation: "ผลคูณของการแปลงเชิงเส้น (Linear Transformation) ซ้ำกันหลายชั้น ก็ยังคงเป็นฟังก์ชันเชิงเส้นเดียว โมเดลจึงมีความสามารถเท่ากับ Linear Model เท่านั้น"
+                },
+                {
+                    id: 7,
+                    q: "หากต้องการฝึกโมเดลตรวจจับการทุจริตบัตรเครดิตที่มีสัดส่วนรายการทุจริตเพียง 0.5% เทคนิค SMOTE (Synthetic Minority Over-sampling Technique) ช่วยแก้ปัญหานี้อย่างไร?",
+                    options: [
+                        "ลบข้อมูลคลาสปกติทิ้งไป 99%",
+                        "สร้างข้อมูลสังเคราะห์สำหรับคลาสส่วนน้อย (Synthetic Samples)",
+                        "ปรับ Weight ของ Loss Function ให้คลาสส่วนมากหนักขึ้น",
+                        "ทำการสุ่มข้อมูลแบบ Undersampling"
+                    ],
+                    correct: 1,
+                    explanation: "SMOTE แก้ปัญหา Imbalanced Data โดยการสุ่มคำนวณเวกเตอร์ระหว่างจุดข้อมูลคลาสส่วนน้อยที่อยู่ใกล้เคียงกัน (k-NN) เพื่อสร้างข้อมูลจำลองสังเคราะห์ใหม่"
+                },
+                {
+                    id: 8,
+                    q: "เทคนิคการตัดแต่งกิ่ง (Pruning) ใน Decision Tree มีวัตถุประสงค์หลักเพื่อสิ่งใด?",
+                    options: [
+                        "เพิ่มความเร็วในการเทรนโมเดล",
+                        "ลดความซับซ้อนของต้นไม้เพื่อลด Overfitting",
+                        "แปลง Decision Tree ให้กลายเป็น Random Forest",
+                        "เพิ่มจำนวน Leaf Node ให้มากที่สุด"
+                    ],
+                    correct: 1,
+                    explanation: "Pruning ตัดกิ่งก้านย่อยที่ไม่จำเป็นออก เพื่อลดความซับซ้อน ช่วยป้องกัน Overfitting และเพิ่มประสิทธิภาพการทำนายข้อมูลใหม่ที่ไม่เคยเห็น (Generalization)"
+                },
+                {
+                    id: 9,
+                    q: "ในการคำนวณเกณฑ์การแบ่งกิ่งของ Decision Tree ข้อใดคือข้อได้เปรียบหลักของการใช้ Gini Impurity แทน Entropy?",
+                    options: [
+                        "มีความแม่นยำสูงกว่า Entropy เสมอ",
+                        "คำนวณได้เร็วกว่าเนื่องจากไม่ต้องใช้ฟังก์ชัน Logarithmic",
+                        "ป้องกันปัญหา Overfitting ได้โดยอัตโนมัติ",
+                        "ใช้ได้เฉพาะข้อมูลต่อเนื่องเท่านั้น"
+                    ],
+                    correct: 1,
+                    explanation: "Gini Impurity ใช้สูตร 1 - Sum(p_i^2) ทำให้ไม่ต้องประมวลผล log_2 เหมือน Entropy จึงลดภาระการคำนวณและสร้างต้นไม้ได้รวดเร็วกว่า"
+                },
+                {
+                    id: 10,
+                    q: "ในกระบวนการ Data Preprocessing เหตุใดจึงต้องทำการ fit ตัวปรับสเกล (เช่น StandardScaler) เฉพาะบน Training Set ก่อนนำไป transform บน Test Set?",
+                    options: [
+                        "เพื่อเพิ่มความเร็วในการ transform ข้อมูล",
+                        "เพื่อป้องกันปัญหา Data Leakage จาก Test Set",
+                        "เพราะ Test Set ไม่มีข้อมูลเชิงตัวเลข",
+                        "เพื่อให้ Test Set มีค่าเฉลี่ยเป็น 0 เสมอ"
+                    ],
+                    correct: 1,
+                    explanation: "หาก fit โดยใช้ข้อมูล Test Set ร่วมด้วย ข้อมูลสถิติ (mean, std) ของ Test Set จะรั่วไหลไปยังโมเดลก่อนการวัดผลจริง (Data Leakage) ทำให้ผลการประเมินดีเกินจริง"
+                }
+            ];
+
+            const [userAnswers, setUserAnswers] = useState({});
+            const [submitted, setSubmitted] = useState(false);
+            const [studentName, setStudentName] = useState('');
+
+            const handleSelect = (qId, optionIdx) => {
+                if (submitted) return;
+                setUserAnswers(prev => ({ ...prev, [qId]: optionIdx }));
+            };
+
+            const calculateScore = () => {
+                let score = 0;
+                questions.forEach(q => {
+                    if (userAnswers[q.id] === q.correct) score++;
+                });
+                return score;
+            };
+
+            const resetQuiz = () => {
+                setUserAnswers({});
+                setSubmitted(false);
+                setStudentName('');
+            };
+
+            const answeredCount = Object.keys(userAnswers).length;
+            const score = calculateScore();
+
+            return (
+                <div className="space-y-6 fade-in">
+                    <p className="text-lg text-slate-600">
+                        แบบทดสอบวัดความรู้ระดับประเมินผล 10 ข้อ ครอบคลุม Artificial Neural Networks, Decision Tree, Classification และ Data Preparation
+                    </p>
+
+                    <Card className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 text-white shadow-xl">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <span className="bg-amber-400 text-slate-950 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Comprehensive Assessment</span>
+                                <h3 className="text-2xl font-black text-white mt-2">แบบทดสอบวัดระดับความเข้าใจ Machine Learning</h3>
+                                <p className="text-slate-300 text-sm mt-1">เลือกตอบคำถามให้ครบ 10 ข้อ แล้วกดส่งคำตอบเพื่อดูผลประเมินคะแนนและคำอธิบายละเอียด</p>
+                            </div>
+                            <div className="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-xl text-center min-w-[160px]">
+                                <div className="text-xs text-slate-300 font-medium mb-1">สถานะแบบทดสอบ</div>
+                                {submitted ? (
+                                    <div>
+                                        <div className="text-3xl font-black text-amber-300">{score} / {questions.length}</div>
+                                        <div className="text-xs text-slate-200 mt-1">({Math.round((score/questions.length)*100)}%)</div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div className="text-3xl font-black text-emerald-400">{answeredCount} / {questions.length}</div>
+                                        <div className="text-xs text-slate-300 mt-1">ตอบแล้ว</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="w-full bg-slate-800 h-2.5 rounded-full mt-6 overflow-hidden">
+                            <div 
+                                className="bg-gradient-to-r from-amber-400 via-emerald-400 to-cyan-400 h-full transition-all duration-300"
+                                style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+                            />
+                        </div>
+                    </Card>
+
+                    <div className="space-y-6">
+                        {questions.map((q, idx) => {
+                            const selected = userAnswers[q.id];
+                            const isAnswered = selected !== undefined;
+                            const isCorrect = selected === q.correct;
+
+                            return (
+                                <Card key={q.id} className={`transition-all duration-200 border-2 ${submitted ? (isCorrect ? 'border-emerald-300 bg-emerald-50/20' : 'border-red-300 bg-red-50/20') : (isAnswered ? 'border-indigo-200' : 'border-slate-100')}`}>
+                                    <div className="flex justify-between items-start gap-4 mb-4">
+                                        <h4 className="font-bold text-slate-800 text-base md:text-lg flex items-start gap-2">
+                                            <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-md shrink-0 mt-0.5">ข้อ {idx + 1}</span>
+                                            <span>{q.q}</span>
+                                        </h4>
+                                        {submitted && (
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
+                                                {isCorrect ? '✅ ถูกต้อง' : '❌ ผิด'}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-3 mb-4">
+                                        {q.options.map((opt, optIdx) => {
+                                            let btnStyle = "p-4 rounded-xl border text-sm font-medium transition text-left flex items-center justify-between ";
+                                            
+                                            if (!submitted) {
+                                                if (selected === optIdx) {
+                                                    btnStyle += "bg-indigo-50 border-indigo-500 text-indigo-900 font-bold shadow-sm";
+                                                } else {
+                                                    btnStyle += "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300";
+                                                }
+                                            } else {
+                                                if (optIdx === q.correct) {
+                                                    btnStyle += "bg-emerald-100 border-emerald-500 text-emerald-900 font-bold shadow-sm";
+                                                } else if (optIdx === selected) {
+                                                    btnStyle += "bg-red-100 border-red-400 text-red-900 font-medium";
+                                                } else {
+                                                    btnStyle += "bg-slate-50 border-slate-200 text-slate-400 opacity-60";
+                                                }
+                                            }
+
+                                            return (
+                                                <button
+                                                    key={optIdx}
+                                                    onClick={() => handleSelect(q.id, optIdx)}
+                                                    disabled={submitted}
+                                                    className={btnStyle}
+                                                >
+                                                    <span className="flex items-center gap-3">
+                                                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${selected === optIdx ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                                            {String.fromCharCode(65 + optIdx)}
+                                                        </span>
+                                                        {opt}
+                                                    </span>
+                                                    {submitted && optIdx === q.correct && (
+                                                        <span className="text-emerald-600 font-bold text-base">✓</span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {submitted && (
+                                        <div className="p-4 rounded-xl bg-slate-900 text-slate-200 text-sm leading-relaxed border border-slate-700">
+                                            <span className="font-bold text-amber-400 block mb-1">💡 คำอธิบายคำตอบ:</span>
+                                            {q.explanation}
+                                        </div>
+                                    )}
+                                </Card>
+                            );
+                        })}
+                    </div>
+
+                    <Card className="bg-slate-50 border-slate-200 text-center py-6">
+                        {!submitted ? (
+                            <div className="space-y-3">
+                                <div className="max-w-xs mx-auto text-left">
+                                    <label className="block text-xs font-bold text-slate-600 mb-1">กรอกชื่อของคุณก่อนส่งคำตอบ</label>
+                                    <input
+                                        type="text"
+                                        value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                        placeholder="ชื่อ-นามสกุล"
+                                        className="w-full px-4 py-2 rounded-xl border border-slate-300 focus:border-primary focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
+                                    />
+                                </div>
+                                <p className="text-sm text-slate-600">ตอบแล้ว {answeredCount} จาก {questions.length} ข้อ</p>
+                                <button
+                                    onClick={() => {
+                                        setSubmitted(true);
+                                        sendScoreToSheet(studentName.trim() || 'ไม่ระบุชื่อ', score, questions.length);
+                                    }}
+                                    disabled={answeredCount === 0 || studentName.trim() === ''}
+                                    className="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition duration-200"
+                                >
+                                    ส่งคำตอบเพื่อตรวจคะแนน 🚀
+                                </button>
+                                {studentName.trim() === '' && (
+                                    <p className="text-xs text-red-500">* กรุณากรอกชื่อก่อนส่งคำตอบ</p>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <p className="text-sm text-slate-500">ผู้ทำแบบทดสอบ: <span className="font-bold text-slate-700">{studentName || 'ไม่ระบุชื่อ'}</span></p>
+                                <div className="text-2xl font-bold text-slate-800">
+                                    {score >= 8 ? '🎉 ยอดเยี่ยมมาก! คุณมีความเข้าใจในเรื่อง Machine Learning อย่างลึกซึ้ง' : 
+                                     score >= 5 ? '👍 ทำได้ดี! ลองทบทวนข้อที่ผิดเพื่อเพิ่มความแม่นยำยิ่งขึ้น' : 
+                                     '💪 พยายามต่อไป! ลองย้อนกลับไปอ่านเนื้อหาในแต่ละบทแล้วทำอีกครั้ง'}
+                                </div>
+                                <button
+                                    onClick={resetQuiz}
+                                    className="px-6 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition duration-200"
+                                >
+                                    ทำแบบทดสอบใหม่อีกครั้ง 🔄
+                                </button>
+                            </div>
+                        )}
+                    </Card>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('slides2');
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+            const tabs = [
+                { id: 'slides2', name: '📊 สไลด์ Machine-Learning 2', icon: 'presentation' },
+                { id: 'ann', name: '1. Neural Networks', icon: 'network' },
+                { id: 'dt', name: '2. Decision Tree', icon: 'git-merge' },
+                { id: 'class', name: '3. ประเภท Classification', icon: 'layers' },
+                { id: 'data', name: '4. การเตรียมข้อมูล (Data)', icon: 'database' },
+                { id: 'quiz10', name: '📝 แบบทดสอบวัดระดับ (10 ข้อ)', icon: 'file-check-2' }
+            ];
+
+            const renderContent = () => {
+                switch(activeTab) {
+                    case 'slides2': return <SlideDeck2Section />;
+                    case 'ann': return <ANNSection />;
+                    case 'dt': return <DTSection />;
+                    case 'class': return <ClassTypeSection />;
+                    case 'data': return <DataPrepSection />;
+                    case 'quiz10': return <ComprehensiveQuizSection />;
+                    default: return <SlideDeck2Section />;
+                }
+            };
+
+            const getTitle = () => tabs.find(t => t.id === activeTab)?.name || '';
+            const getIcon = () => tabs.find(t => t.id === activeTab)?.icon || 'brain';
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row">
+                    {/* Mobile Header */}
+                    <div className="md:hidden bg-white border-b border-slate-200 p-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                        <div className="font-bold text-lg text-primary flex items-center gap-2">
+                            <LucideIcon name="brain" className="text-primary" /> ML Basics
+                        </div>
+                        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600 bg-slate-100 rounded-lg">
+                            <LucideIcon name={isMobileMenuOpen ? 'x' : 'menu'} />
+                        </button>
+                    </div>
+
+                    {/* Sidebar Navigation */}
+                    <nav className={`
+                        ${isMobileMenuOpen ? 'block' : 'hidden'} md:block 
+                        w-full md:w-72 bg-white border-r border-slate-200 shrink-0
+                        md:h-screen md:sticky md:top-0 overflow-y-auto shadow-lg md:shadow-none absolute md:relative z-40
+                    `}>
+                        <div className="p-6 hidden md:block">
+                            <h1 className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary flex items-center gap-2 mb-1">
+                                <LucideIcon name="brain" className="text-primary" /> ML Basics
+                            </h1>
+                            <p className="text-xs text-slate-500 font-medium tracking-wide">INTERACTIVE LEARNING APP</p>
+                        </div>
+                        
+                        <div className="p-4 md:px-4 md:py-2 flex flex-col gap-2">
+                            {tabs.map(tab => (
+                                <button 
+                                    key={tab.id}
+                                    onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
+                                    className={`
+                                        flex items-center gap-3 w-full text-left px-4 py-3 rounded-xl transition-all font-medium text-sm
+                                        ${activeTab === tab.id 
+                                            ? 'bg-primary text-white shadow-md shadow-indigo-200 translate-x-1 font-bold' 
+                                            : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
+                                        }
+                                    `}
+                                >
+                                    <LucideIcon name={tab.icon} className="w-5 h-5" />
+                                    {tab.name}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        <div className="p-6 hidden md:block border-t border-slate-100 mt-8">
+                            <div className="bg-indigo-50 p-4 rounded-xl flex items-start gap-3 border border-indigo-100">
+                                <LucideIcon name="lightbulb" className="text-indigo-600 mt-1 shrink-0" />
+                                <p className="text-xs text-indigo-900 leading-relaxed">แอปพลิเคชันเพื่อการเรียนรู้แบบโต้ตอบ ทดลองปรับ Simulator และทำแบบทดสอบได้เลย!</p>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 p-4 md:p-8 lg:p-12 max-w-5xl mx-auto w-full">
+                        <SectionTitle title={getTitle()} icon={getIcon()} />
+                        {renderContent()}
+                        <div className="h-24"></div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
