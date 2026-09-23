@@ -739,6 +739,30 @@
                     ],
                     correct: 1,
                     explanation: "หาก fit โดยใช้ข้อมูล Test Set ร่วมด้วย ข้อมูลสถิติ (mean, std) ของ Test Set จะรั่วไหลไปยังโมเดลก่อนการวัดผลจริง (Data Leakage) ทำให้ผลการประเมินดีเกินจริง"
+                },
+                {
+                    id: 11,
+                    q: "Confusion Matrix ในงาน Binary Classification ค่า 'False Negative' หมายถึงกรณีใด?",
+                    options: [
+                        "โมเดลทำนายว่าเป็นบวก และคำตอบจริงก็เป็นบวก",
+                        "โมเดลทำนายว่าเป็นลบ และคำตอบจริงก็เป็นลบ",
+                        "โมเดลทำนายว่าเป็นลบ แต่คำตอบจริงคือเป็นบวก",
+                        "โมเดลทำนายว่าเป็นบวก แต่คำตอบจริงคือเป็นลบ"
+                    ],
+                    correct: 2,
+                    explanation: "False Negative คือกรณีที่โมเดลทำนายผิดว่าเป็นลบ (Negative) ทั้งที่ความจริงแล้วคำตอบคือบวก (Positive) เช่น ทำนายว่าคนไข้ไม่ป่วย ทั้งที่จริงป่วย"
+                },
+                {
+                    id: 12,
+                    q: "เทคนิค Cross-Validation (เช่น K-Fold) มีประโยชน์หลักต่อการประเมินโมเดลอย่างไร?",
+                    options: [
+                        "ทำให้โมเดลเทรนเร็วขึ้นเสมอ",
+                        "ช่วยให้การประเมินประสิทธิภาพโมเดลน่าเชื่อถือขึ้น โดยลดผลกระทบจากการสุ่มแบ่งข้อมูลเพียงครั้งเดียว",
+                        "ใช้แทนขั้นตอน Feature Scaling ได้ทั้งหมด",
+                        "ทำให้ไม่จำเป็นต้องมี Test Set อีกต่อไป"
+                    ],
+                    correct: 1,
+                    explanation: "K-Fold Cross-Validation แบ่งข้อมูลเป็นหลายส่วนแล้ววนทดสอบซ้ำหลายรอบ ทำให้ค่าประเมินผล (เช่น Accuracy) มีความน่าเชื่อถือมากกว่าการแบ่ง Train/Test เพียงครั้งเดียว ซึ่งอาจได้ผลลัพธ์ที่เอนเอียงจากการสุ่มแบ่ง"
                 }
             ];
 
@@ -771,7 +795,7 @@
             return (
                 <div className="space-y-6 fade-in">
                     <p className="text-lg text-slate-600">
-                        แบบทดสอบวัดความรู้ระดับประเมินผล 10 ข้อ ครอบคลุม Artificial Neural Networks, Decision Tree, Classification และ Data Preparation
+                        แบบทดสอบวัดความรู้ระดับประเมินผล 12 ข้อ ครอบคลุม Artificial Neural Networks, Decision Tree, Classification และ Data Preparation
                     </p>
 
                     <Card className="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 text-white shadow-xl">
@@ -779,7 +803,7 @@
                             <div>
                                 <span className="bg-amber-400 text-slate-950 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Comprehensive Assessment</span>
                                 <h3 className="text-2xl font-black text-white mt-2">แบบทดสอบวัดระดับความเข้าใจ Machine Learning</h3>
-                                <p className="text-slate-300 text-sm mt-1">เลือกตอบคำถามให้ครบ 10 ข้อ แล้วกดส่งคำตอบเพื่อดูผลประเมินคะแนนและคำอธิบายละเอียด</p>
+                                <p className="text-slate-300 text-sm mt-1">เลือกตอบคำถามให้ครบ 12 ข้อ แล้วกดส่งคำตอบเพื่อดูผลประเมินคะแนนและคำอธิบายละเอียด</p>
                             </div>
                             <div className="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-xl text-center min-w-[160px]">
                                 <div className="text-xs text-slate-300 font-medium mb-1">สถานะแบบทดสอบ</div>
@@ -909,8 +933,8 @@
                             <div className="space-y-4">
                                 <p className="text-sm text-slate-500">ผู้ทำแบบทดสอบ: <span className="font-bold text-slate-700">{studentName || 'ไม่ระบุชื่อ'}</span></p>
                                 <div className="text-2xl font-bold text-slate-800">
-                                    {score >= 8 ? '🎉 ยอดเยี่ยมมาก! คุณมีความเข้าใจในเรื่อง Machine Learning อย่างลึกซึ้ง' : 
-                                     score >= 5 ? '👍 ทำได้ดี! ลองทบทวนข้อที่ผิดเพื่อเพิ่มความแม่นยำยิ่งขึ้น' : 
+                                    {score >= 10 ? '🎉 ยอดเยี่ยมมาก! คุณมีความเข้าใจในเรื่อง Machine Learning อย่างลึกซึ้ง' : 
+                                     score >= 6 ? '👍 ทำได้ดี! ลองทบทวนข้อที่ผิดเพื่อเพิ่มความแม่นยำยิ่งขึ้น' : 
                                      '💪 พยายามต่อไป! ลองย้อนกลับไปอ่านเนื้อหาในแต่ละบทแล้วทำอีกครั้ง'}
                                 </div>
                                 <button
@@ -936,7 +960,7 @@
                 { id: 'dt', name: '2. Decision Tree', icon: 'git-merge' },
                 { id: 'class', name: '3. ประเภท Classification', icon: 'layers' },
                 { id: 'data', name: '4. การเตรียมข้อมูล (Data)', icon: 'database' },
-                { id: 'quiz10', name: '📝 แบบทดสอบวัดระดับ (10 ข้อ)', icon: 'file-check-2' }
+                { id: 'quiz10', name: '📝 แบบทดสอบวัดระดับ (12 ข้อ)', icon: 'file-check-2' }
             ];
 
             const renderContent = () => {
